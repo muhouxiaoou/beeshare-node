@@ -1,34 +1,34 @@
 {
   "schema": 1,
-  "version": "0.1.1",
-  "published_at": "2026-10-03T10:31:11Z",
-  "expires_at": "2027-04-01T10:31:11Z",
-  "notes": "网站连不上时自动改从 Gitee、GitHub 镜像检查和下载更新；下载卡住时自动换来源",
+  "version": "0.1.2",
+  "published_at": "2026-10-03T11:44:00Z",
+  "expires_at": "2027-04-01T11:44:00Z",
+  "notes": "前台运行时显示品牌开头和状态提示、自动打开本地控制台；运行中可输入数字操作；直接运行 beeshare-node 显示菜单；控制台登录 30 天有效",
   "assets": {
     "darwin-amd64": {
-      "file": "beeshare-node-0.1.1-darwin-amd64",
-      "sha256": "f3733596eb8747e8e38adfcd7b9eef9b050c4d0b74e02fb98ebc2cecd7b7d870",
-      "size": 7542816
+      "file": "beeshare-node-0.1.2-darwin-amd64",
+      "sha256": "5279bd7171b7a3cdf25346dd84acd3f2b65e0d0b8390b7ea33b12a9b9b7963fa",
+      "size": 7588416
     },
     "darwin-arm64": {
-      "file": "beeshare-node-0.1.1-darwin-arm64",
-      "sha256": "706d5b1483754ec124e87b7fd40986fdcbbb8995b4ecae3ffd7a1575f16326ed",
-      "size": 7230482
+      "file": "beeshare-node-0.1.2-darwin-arm64",
+      "sha256": "5b96ca829dec2bffdbdcf5b0b85876b863ff8a483fd08a0ba5760dfa67a296cc",
+      "size": 7280546
     },
     "linux-amd64": {
-      "file": "beeshare-node-0.1.1-linux-amd64",
-      "sha256": "dbe9c412468c7b3897b927bcd95044411ad25a387d82a14338233f373245fdb8",
-      "size": 7364760
+      "file": "beeshare-node-0.1.2-linux-amd64",
+      "sha256": "e2e046febbf695f2340bd16fde8100595e59ff8ff07835a88771dab88e3efb51",
+      "size": 7409816
     },
     "linux-arm64": {
-      "file": "beeshare-node-0.1.1-linux-arm64",
-      "sha256": "160ce28556adac8a7963cefd3e5478d39c29d79eec4c5b6cb0f6c819b0dbc696",
-      "size": 7078040
+      "file": "beeshare-node-0.1.2-linux-arm64",
+      "sha256": "e7d9c5952fd59738ca27bbfff31f57f495fdfae4a04a9463688ceaa1038251ce",
+      "size": 7143576
     },
     "windows-amd64": {
-      "file": "beeshare-node-0.1.1-windows-amd64.exe",
-      "sha256": "f0ae16cba6f025d4c1936e3ebe8a5a9e40eb0113ee1f50d5921f494fc3f5e6cb",
-      "size": 7597568
+      "file": "beeshare-node-0.1.2-windows-amd64.exe",
+      "sha256": "6cc9418f9ee53ec2e0f903bf4a2170a3bef68d1299db38fb184ce6bf0a2fac82",
+      "size": 7646208
     }
   }
 }
