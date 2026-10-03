@@ -261,7 +261,7 @@ case ":${PATH}:" in
   *) say "提示：${DIR} 不在你的 PATH 里。可以运行 export PATH=\"${DIR}:\${PATH}\"，或用完整路径 ${DIR}/beeshare-node。" ;;
 esac
 say ""
-say "下一步："
+say "下一步（不想记命令：直接运行 beeshare-node，按数字选择）："
 say "  1. 在网站「节点 → 添加节点」里生成绑定码：${BASE}/nodes"
 say "  2. beeshare-node bind <绑定码>"
 say "  3. beeshare-node install-service       （长期运行：开机自启、崩溃自动恢复、自动更新）"
