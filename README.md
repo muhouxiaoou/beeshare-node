@@ -2,7 +2,7 @@
 
 这里只存放蜂享 BeeShare 节点程序（beeshare-node）的安装包和安装脚本，方便快速下载。网站：https://beeshare.cc
 
-当前版本：0.1.4
+当前版本：0.1.5
 
 ## 安装
 
