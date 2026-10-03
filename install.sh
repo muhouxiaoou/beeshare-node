@@ -5,7 +5,9 @@
 #
 # 做的事：检测系统和架构 → 下载对应的安装包 → 校验 SHA-256（来自平台的更新清单）→ 试运行确认版本 → 安装。
 # 默认装到 ~/.local/bin（root 用户装到 /usr/local/bin），不需要 sudo。
-# 可用环境变量：BEESHARE_INSTALL_DIR 指定安装目录；HTTPS_PROXY 让 curl 走代理；NO_COLOR 关闭颜色。
+# 装好后默认装成系统服务（开机自启、崩溃自动恢复、自动更新）并在浏览器里打开本地控制台，在那里绑定。
+# 可用环境变量：BEESHARE_INSTALL_DIR 指定安装目录；BEESHARE_NO_SERVICE=1 不装系统服务（容器里自动跳过）；
+# HTTPS_PROXY 让 curl 走代理；NO_COLOR 关闭颜色。
 #
 # 关于信任：第一次安装信任的是 HTTPS 连接和下载来源（平台或它的 Gitee / GitHub 镜像）；装好之后的每一次更新
 # （beeshare-node update）都会用程序里内置的发布公钥验证清单签名，不再依赖网络连接的可信度。
@@ -32,7 +34,7 @@ else
 fi
 
 say() { printf '%s\n' "$*"; }
-step() { printf '%s[%s/4]%s %s\n' "${C_HONEY}" "$1" "${C_OFF}" "$2"; }
+step() { printf '%s[%s/5]%s %s\n' "${C_HONEY}" "$1" "${C_OFF}" "$2"; }
 note() { printf '      %s%s%s\n' "${C_DIM}" "$*" "${C_OFF}"; }
 die() { printf '%s错误: %s%s\n' "${C_ERR}" "$*" "${C_OFF}" >&2; exit 1; }
 # 网络失败的提示：多试一次、或者让 curl 走代理。
@@ -261,14 +263,77 @@ case ":${PATH}:" in
   *) say "提示：${DIR} 不在你的 PATH 里。可以运行 export PATH=\"${DIR}:\${PATH}\"，或用完整路径 ${DIR}/beeshare-node。" ;;
 esac
 say ""
-say "下一步（不想记命令：直接运行 beeshare-node，按数字选择）："
-say "  1. 在网站「节点 → 添加节点」里生成绑定码：${BASE}/nodes"
-say "  2. beeshare-node bind <绑定码>"
-say "  3. beeshare-node install-service       （长期运行：开机自启、崩溃自动恢复、自动更新）"
-say "     beeshare-node run                   （前台运行，用来试一试）"
+
+# ---- 装成系统服务 ----
+# 和"装完就能用"的预期一致：开机自启、崩溃自动恢复、自动更新。没绑定的节点作为服务运行时会在本地控制台里等绑定。
+NODE="${DIR}/beeshare-node"
+step 5 "设置开机自启和自动更新…"
+SERVICE=""
+SKIP=""
+if [ "${BEESHARE_NO_SERVICE:-}" = 1 ]; then
+  SKIP="按 BEESHARE_NO_SERVICE=1 跳过"
+elif [ -f /.dockerenv ] || [ -n "${container:-}" ]; then
+  SKIP="在容器里，不装系统服务"
+fi
+SVC_ARGS=""
+if [ -z "${SKIP}" ] && [ "${OS}" = linux ]; then
+  if ! command -v systemctl >/dev/null 2>&1; then
+    SKIP="这台机器没有 systemd"
+  elif [ "$(id -u)" = 0 ]; then
+    SVC_ARGS="--system" # root：系统级服务，开机即运行
+  elif ! systemctl --user show-environment >/dev/null 2>&1; then
+    SKIP="当前用户没有可用的 systemd 用户服务（可以用 root 安装，或手动运行 beeshare-node run）"
+  fi
+fi
+if [ -n "${SKIP}" ]; then
+  note "${SKIP}，没有装成系统服务"
+elif "${NODE}" install-service ${SVC_ARGS} >"${TMP}/svc.log" 2>&1; then
+  SERVICE=1
+  note "已作为系统服务启动"
+else
+  note "装成系统服务失败：$(tail -n 1 "${TMP}/svc.log")"
+fi
+
+# 已经绑定过（重新安装、升级）就不用再提绑定
+BOUND=""
+CFG_PATH="$("${NODE}" config path 2>/dev/null || true)"
+[ -z "${CFG_PATH}" ] || [ ! -f "$(dirname "${CFG_PATH}")/node.key" ] || BOUND=1
+# 能不能在这台机器上打开浏览器（和 beeshare-node 的判断一致：通过 SSH 登录时不打开）
+GUI=""
+if [ -z "${SSH_CONNECTION:-}${SSH_TTY:-}" ]; then
+  case "${OS}" in
+    darwin) GUI=1 ;;
+    linux) [ -z "${DISPLAY:-}${WAYLAND_DISPLAY:-}" ] || GUI=1 ;;
+  esac
+fi
+
 say ""
-say "  beeshare-node console                  打开本机的网页控制台（也可以在那里绑定、设置代理）"
-say "  beeshare-node doctor                   出问题时先运行它，逐项检查并给出建议"
-say "  以后更新：beeshare-node update"
+if [ -n "${SERVICE}" ]; then
+  say "${C_OK}✓ 节点已在后台运行${C_OFF}：开机自启、崩溃自动恢复、自动更新到验证过签名的新版本。"
+  if [ -n "${GUI}" ] && "${NODE}" console -wait 20s >/dev/null 2>&1; then
+    if [ -n "${BOUND}" ]; then
+      say "  本地控制台已在浏览器里打开。"
+    else
+      say "  本地控制台已在浏览器里打开：点「一键绑定」，或输入网站「节点 → 添加节点」里的绑定码。"
+    fi
+    say "  没看到的话运行：beeshare-node console"
+  elif [ -z "${BOUND}" ]; then
+    say "  下一步：到网站「节点 → 添加节点」生成绑定码（${BASE}/nodes），然后运行："
+    say "    beeshare-node bind <绑定码>"
+    say "  也可以在本地控制台里绑定：beeshare-node console（服务器上会给出 SSH 端口转发的做法）"
+  fi
+  say ""
+  say "  beeshare-node          数字菜单（设置代理、查看状态、检查更新…）"
+  say "  beeshare-node status   查看状态        beeshare-node uninstall-service   停止并移除服务"
+else
+  say "下一步（不想记命令：直接运行 beeshare-node，按数字选择）："
+  say "  1. 在网站「节点 → 添加节点」里生成绑定码：${BASE}/nodes"
+  say "  2. beeshare-node bind <绑定码>"
+  say "  3. beeshare-node install-service       （长期运行：开机自启、崩溃自动恢复、自动更新）"
+  say "     beeshare-node run                   （前台运行，用来试一试）"
+  say ""
+  say "  beeshare-node console                  打开本机的网页控制台（也可以在那里绑定、设置代理）"
+  say "  beeshare-node doctor                   出问题时先运行它，逐项检查并给出建议"
+fi
 say ""
 say "  ${C_HONEY}欢迎加入蜂享。${C_OFF}${C_DIM}使用指南和收益规则见 ${BASE}${C_OFF}"
