@@ -9,13 +9,13 @@
 从 Gitee 安装（macOS / Linux）：
 
 ```bash
-curl -fsSL https://gitee.com/muhouxiaoou/beeshare-node/raw/main/install.sh | sh
+curl -fsSL https://gitee.com/muhouxiaoou/beeshare-node/releases/download/latest/install.sh | sh
 ```
 
 从 Gitee 安装（Windows PowerShell）：
 
 ```powershell
-irm https://gitee.com/muhouxiaoou/beeshare-node/raw/main/install.ps1 | iex
+irm https://gitee.com/muhouxiaoou/beeshare-node/releases/download/latest/install.ps1 | iex
 ```
 
 从官网安装：
