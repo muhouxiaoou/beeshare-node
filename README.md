@@ -6,19 +6,19 @@
 
 ## 安装
 
-国内网络（macOS / Linux）：
+从 Gitee 安装（macOS / Linux）：
 
 ```bash
 curl -fsSL https://gitee.com/muhouxiaoou/beeshare-node/raw/main/install.sh | sh
 ```
 
-国内网络（Windows PowerShell）：
+从 Gitee 安装（Windows PowerShell）：
 
 ```powershell
 irm https://gitee.com/muhouxiaoou/beeshare-node/raw/main/install.ps1 | iex
 ```
 
-海外网络：
+从官网安装：
 
 ```bash
 curl -fsSL https://beeshare.cc/install.sh | sh
