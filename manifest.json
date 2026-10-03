@@ -1,0 +1,34 @@
+{
+  "schema": 1,
+  "version": "0.1.0",
+  "published_at": "2026-10-03T03:51:41Z",
+  "expires_at": "2027-04-01T03:51:41Z",
+  "notes": "首个版本",
+  "assets": {
+    "darwin-amd64": {
+      "file": "beeshare-node-0.1.0-darwin-amd64",
+      "sha256": "db7450b083f6a54d59d79975d199bf4bbf63f3bda423e90d2e2718f6fc3f71f3",
+      "size": 7521920
+    },
+    "darwin-arm64": {
+      "file": "beeshare-node-0.1.0-darwin-arm64",
+      "sha256": "749f2107334f1c06b70aa444a850eca9f0197fea177524f5052d0aae9ec46d04",
+      "size": 7197042
+    },
+    "linux-amd64": {
+      "file": "beeshare-node-0.1.0-linux-amd64",
+      "sha256": "79ad9a39b638cdcf82bc84317a008acdd101d8bb69c6ca4a282ea8fb8bcd4bce",
+      "size": 7348376
+    },
+    "linux-arm64": {
+      "file": "beeshare-node-0.1.0-linux-arm64",
+      "sha256": "64f30372e946d3594c39beac5509f2069c0011f149e891e538de460965f85748",
+      "size": 7078040
+    },
+    "windows-amd64": {
+      "file": "beeshare-node-0.1.0-windows-amd64.exe",
+      "sha256": "0b55885b785ec62dce6b15bc6f049f77919d72d98875daafc4e75865a0c114ca",
+      "size": 7577088
+    }
+  }
+}
