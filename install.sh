@@ -1,7 +1,7 @@
 #!/bin/sh
 # BeeShare 节点安装脚本（macOS / Linux）。
 #   curl -fsSL https://beeshare.cc/install.sh | sh
-#   curl -fsSL https://gitee.com/muhouxiaoou/beeshare-node/raw/main/install.sh | sh   （国内）
+#   curl -fsSL https://gitee.com/muhouxiaoou/beeshare-node/raw/main/install.sh | sh   （从 Gitee 镜像安装）
 #
 # 做的事：检测系统和架构 → 下载对应的安装包 → 校验 SHA-256（来自平台的更新清单）→ 试运行确认版本 → 安装。
 # 默认装到 ~/.local/bin（root 用户装到 /usr/local/bin），不需要 sudo。
@@ -10,8 +10,10 @@
 # 关于信任：第一次安装信任的是 HTTPS 连接和下载来源（平台或它的 Gitee / GitHub 镜像）；装好之后的每一次更新
 # （beeshare-node update）都会用程序里内置的发布公钥验证清单签名，不再依赖网络连接的可信度。
 #
-# 网络：国内直连平台服务器（新加坡）十次只能握手成功两三次，所以按顺序找来源：Gitee 镜像（国内快）→
-# GitHub 镜像（海外快）→ 平台服务器。每个请求都有时限，连不上就换下一个；全都不行时给出走代理的做法。
+# 网络：连平台服务器时常常握手失败（实测十次只成两三次），所以按顺序找来源：Gitee 镜像 → GitHub 镜像 →
+# 平台服务器。每个请求都有时限，连不上就换下一个；全都不行时给出走代理的做法。
+# 注意：这个文件会原样放到 Gitee 镜像上，Gitee 的内容审核会拦下含某些地名、网络用语的文件（返回 451），
+# 写注释和提示时不要用这类词（词表在 relmirror.GiteeBlockedWords，beeshare-release 的测试会检查）。
 # 镜像由 beeshare-release mirror 同步，安装包都按清单里的 SHA-256 校验，镜像被篡改也装不上。
 set -eu
 
