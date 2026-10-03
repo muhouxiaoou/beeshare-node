@@ -1,13 +1,14 @@
 # BeeShare 节点安装脚本（Windows）。在 PowerShell 里运行：
 #   irm https://beeshare.cc/install.ps1 | iex
+#   irm https://gitee.com/muhouxiaoou/beeshare-node/releases/download/latest/install.ps1 | iex   （从 Gitee 镜像安装）
 #
 # 做的事：读取平台的发布清单 → 下载 windows-amd64 安装包 → 校验 SHA-256 → 试运行确认版本 →
 # 装到 %LOCALAPPDATA%\BeeShare\bin 并加入当前用户的 PATH。不需要管理员权限。
 # 可用环境变量：BEESHARE_BASE（平台地址）、BEESHARE_INSTALL_DIR（安装目录）、BEESHARE_PROXY（下载走的代理，
-# 例如 http://127.0.0.1:7890；不设时用系统代理设置）。
+# 例如 http://127.0.0.1:7890；不设时用系统代理设置）、BEESHARE_SOURCES（来源顺序，默认 gitee github site）。
 #
-# 关于信任：第一次安装信任的是 HTTPS 连接和 beeshare.cc 本身（和 install.sh 一样）；
-# 装好之后的每一次更新都会用程序内置的发布公钥验证清单签名。
+# 来源：和 install.sh 一样按顺序找 Gitee 镜像 → GitHub 镜像 → 平台服务器，连不上或文件校验不通过就换下一个。
+# 关于信任：第一次安装信任的是 HTTPS 连接和下载来源；装好之后的每一次更新都会用程序内置的发布公钥验证清单签名。
 
 & {
   $ErrorActionPreference = 'Stop'
@@ -20,7 +21,7 @@
     Write-Host '  · 网络不稳定时，重新运行一次安装命令通常就好了'
     Write-Host '  · 本机有代理时，先设置代理再安装，例如：'
     Write-Host '      $env:BEESHARE_PROXY = ''http://127.0.0.1:7890'''
-    Write-Host "      irm ${base}/install.ps1 | iex"
+    Write-Host "      irm ${gitee}/releases/download/latest/install.ps1 | iex"
   }
   # HttpCode：异常里服务器明确返回的错误状态码（4xx/5xx），网络错误、超时、中途断开（可能带着 200 的响应）都是 0。
   function HttpCode($err) {
@@ -45,6 +46,26 @@
   try { [Net.ServicePointManager]::SecurityProtocol = [Net.ServicePointManager]::SecurityProtocol -bor [Net.SecurityProtocolType]::Tls12 } catch {}
 
   $base = if ($env:BEESHARE_BASE) { $env:BEESHARE_BASE.TrimEnd('/') } else { 'https://beeshare.cc' }
+  $gitee = if ($env:BEESHARE_GITEE) { $env:BEESHARE_GITEE.TrimEnd('/') } else { 'https://gitee.com/muhouxiaoou/beeshare-node' }
+  $github = if ($env:BEESHARE_GITHUB) { $env:BEESHARE_GITHUB.TrimEnd('/') } else { 'https://github.com/muhouxiaoou/beeshare-node' }
+  $sources = if ($env:BEESHARE_SOURCES) { @($env:BEESHARE_SOURCES -split '[ ,]+' | Where-Object { $_ }) } else { @('gitee', 'github', 'site') }
+  $labels = @{ gitee = 'Gitee'; github = 'GitHub'; site = 'beeshare.cc' }
+  foreach ($s in $sources) { if (-not $labels.ContainsKey($s)) { Fail "BEESHARE_SOURCES 里有不认识的来源 ${s}（可用 gitee、github、site）" } }
+  # Gitee 没有"最新发行版"的直链，读固定标签 latest 发行版里的清单；GitHub 用 releases/latest。
+  function ManifestUrl([string]$s) {
+    switch ($s) {
+      'gitee' { return "${gitee}/releases/download/latest/manifest.json" }
+      'github' { return "${github}/releases/latest/download/manifest.json" }
+      default { return "${base}/node/manifest.json" }
+    }
+  }
+  function AssetUrl([string]$s, [string]$name) {
+    switch ($s) {
+      'gitee' { return "${gitee}/releases/download/v${version}/${name}" }
+      'github' { return "${github}/releases/download/v${version}/${name}" }
+      default { return "${base}/download/${name}" }
+    }
+  }
   $net = @{ UseBasicParsing = $true }
   if ($env:BEESHARE_PROXY) { $net.Proxy = $env:BEESHARE_PROXY }
 
@@ -61,12 +82,29 @@
   if ($env:BEESHARE_PROXY) { Note "使用代理 ${env:BEESHARE_PROXY}" }
 
   Step 2 '获取最新版本信息…'
-  try { $m = WithRetry { Invoke-RestMethod @net -Uri "${base}/node/manifest.json" -TimeoutSec 30 } }
-  catch {
-    $code = HttpCode $_
-    if ($code -eq 0) { NetHelp; Fail "连不上 ${base}（已试 3 次）" }
-    if ($code -eq 404) { Fail "平台还没有发布节点安装包（${base}/node/manifest.json 不存在），请稍后再试或联系管理员" }
-    Fail "获取发布清单失败：${base}/node/manifest.json 返回 http ${code}"
+  # 镜像上的清单是发行版附件，响应类型不一定是 JSON：一律取文本再解析（5.1 里二进制类型的 Content 是字节数组）。
+  $m = $null; $src = $null; $all404 = $true
+  for ($round = 1; $round -le 2 -and -not $m; $round++) {
+    if ($round -gt 1) { Note '所有来源都没连上，2 秒后再试一轮（2/2）…'; Start-Sleep -Seconds 2 }
+    foreach ($s in $sources) {
+      $label = $labels[$s]
+      $u = ManifestUrl $s
+      try {
+        $r = Invoke-WebRequest @net -Uri $u -TimeoutSec 20
+        $text = if ($r.Content -is [byte[]]) { [Text.Encoding]::UTF8.GetString($r.Content) } else { [string]$r.Content }
+        $m = $text | ConvertFrom-Json
+        $src = $s
+        break
+      } catch {
+        $code = HttpCode $_
+        if ($code -eq 404) { $why = '还没有发布' } else { $all404 = $false; $why = if ($code) { "http ${code}" } else { $_.Exception.Message } }
+        Note "${label} 不可用（${why}）"
+      }
+    }
+  }
+  if (-not $m) {
+    if ($all404) { Fail '平台还没有发布节点安装包，请稍后再试或联系管理员' }
+    NetHelp; Fail '连不上任何下载来源（Gitee、GitHub、beeshare.cc）'
   }
 
   $version = [string]$m.version
@@ -77,22 +115,43 @@
   $want = ([string]$asset.sha256).ToLowerInvariant()
   if ($file -notmatch '^beeshare-node-[0-9]+\.[0-9]+\.[0-9]+-windows-amd64\.exe$') { Fail "清单里的文件名不合法: ${file}" }
   if ($want -notmatch '^[0-9a-f]{64}$') { Fail '清单里的校验值不合法' }
-  Note "最新版本 ${version}"
+  $srcLabel = $labels[$src]
+  Note "最新版本 ${version}（来源：${srcLabel}）"
   $sizeText = if ($asset.size) { '，{0:N1} MB' -f ([double]$asset.size / 1MB) } else { '' }
 
   $tmp = Join-Path ([IO.Path]::GetTempPath()) ("beeshare-node-" + [guid]::NewGuid().ToString('N') + '.exe')
   try {
     Step 3 "下载安装包（${file}${sizeText}）…"
     Note '下载时不显示进度条（Windows PowerShell 显示进度会让下载慢很多），请稍等'
-    try { WithRetry { Invoke-WebRequest @net -Uri "${base}/download/${file}" -OutFile $tmp -TimeoutSec 600 } | Out-Null }
-    catch {
-      $code = HttpCode $_
-      if ($code -eq 0) { NetHelp; Fail "下载失败，连不上 ${base} 或速度太慢（已试 3 次）" }
-      Fail "下载失败：${base}/download/${file} 返回 http ${code}"
+    # 先从拿到清单的来源下载，失败或校验不通过再换其他来源
+    $order = @($src) + @($sources | Where-Object { $_ -ne $src })
+    $ok = $false; $badSum = $false; $netFail = $false; $httpFail = @()
+    foreach ($s in $order) {
+      $label = $labels[$s]
+      if ($s -ne $src) { Note "改从 ${label} 下载…" }
+      $u = AssetUrl $s $file
+      try { WithRetry { Invoke-WebRequest @net -Uri $u -OutFile $tmp -TimeoutSec 600 } | Out-Null }
+      catch {
+        $code = HttpCode $_
+        if ($code -eq 0) { $netFail = $true; Note "${label} 下载失败" } else { $httpFail += "${label} 返回 http ${code}"; Note "${label} 返回 http ${code}" }
+        continue
+      }
+      Note '校验 SHA-256…'
+      $got = (Get-FileHash -Algorithm SHA256 -Path $tmp).Hash.ToLowerInvariant()
+      if ($got -ne $want) {
+        $badSum = $true
+        Note "从 ${label} 下载的文件和清单不一致，已丢弃"
+        Remove-Item -Force -ErrorAction SilentlyContinue $tmp
+        continue
+      }
+      $ok = $true
+      break
     }
-    Note '校验 SHA-256…'
-    $got = (Get-FileHash -Algorithm SHA256 -Path $tmp).Hash.ToLowerInvariant()
-    if ($got -ne $want) { Fail '下载文件的 SHA-256 与清单不一致，已放弃安装（可能下载损坏或被篡改）' }
+    if (-not $ok) {
+      if ($badSum) { Fail '下载文件的 SHA-256 与清单不一致，已放弃安装（可能下载损坏或被篡改）' }
+      if (-not $netFail -and $httpFail.Count -gt 0) { Fail ('下载失败：' + ($httpFail -join '、')) }
+      NetHelp; Fail '下载失败，连不上下载来源或速度太慢'
+    }
 
     $gotVer = (& $tmp version 2>$null | Out-String).Trim()
     if ($gotVer -ne $version) { Fail "新程序无法在本机运行或版本不符（得到 '${gotVer}'，应为 '${version}'）" }
