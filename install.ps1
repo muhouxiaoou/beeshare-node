@@ -7,6 +7,8 @@
 # 可用环境变量：BEESHARE_BASE（平台地址）、BEESHARE_INSTALL_DIR（安装目录）、BEESHARE_PROXY（下载走的代理，
 # 例如 http://127.0.0.1:7890；不设时用系统代理设置）、BEESHARE_SOURCES（来源顺序，默认 gitee github site）。
 #
+# 装好后默认创建登录时运行的计划任务（崩溃自动恢复、自动更新）并在浏览器里打开本地控制台，在那里绑定；
+# BEESHARE_NO_SERVICE=1 跳过。
 # 来源：和 install.sh 一样按顺序找 Gitee 镜像 → GitHub 镜像 → 平台服务器，连不上或文件校验不通过就换下一个。
 # 关于信任：第一次安装信任的是 HTTPS 连接和下载来源；装好之后的每一次更新都会用程序内置的发布公钥验证清单签名。
 
@@ -15,7 +17,7 @@
   $ProgressPreference = 'SilentlyContinue' # Windows PowerShell 5.1 显示进度条会让下载慢很多
 
   function Fail([string]$msg) { Write-Host "错误: ${msg}" -ForegroundColor Red; throw $msg }
-  function Step([string]$n, [string]$msg) { Write-Host "[${n}/4] " -ForegroundColor Yellow -NoNewline; Write-Host $msg }
+  function Step([string]$n, [string]$msg) { Write-Host "[${n}/5] " -ForegroundColor Yellow -NoNewline; Write-Host $msg }
   function Note([string]$msg) { Write-Host "      ${msg}" -ForegroundColor DarkGray }
   function NetHelp {
     Write-Host '  · 网络不稳定时，重新运行一次安装命令通常就好了'
@@ -182,15 +184,45 @@
   Write-Host ''
   Write-Host "√ 已安装 beeshare-node ${version} → ${dest}" -ForegroundColor Green
   Write-Host ''
-  Write-Host '下一步：'
-  Write-Host "  1. 在网站「节点 → 添加节点」里生成绑定码：${base}/nodes"
-  Write-Host '  2. beeshare-node bind <绑定码>'
-  Write-Host '  3. beeshare-node install-service       （登录后自动运行、崩溃自动恢复、自动更新）'
-  Write-Host '     或 beeshare-node run               （前台运行，关掉窗口就下线）'
+
+  # 和 install.sh 一样装成后台服务（Windows 上是登录时运行的计划任务），再打开本地控制台在那里绑定
+  Step 5 '设置登录后自动运行和自动更新…'
+  $service = $false
+  if ($env:BEESHARE_NO_SERVICE -eq '1') {
+    Note '按 BEESHARE_NO_SERVICE=1 跳过，没有装成后台服务'
+  } else {
+    $out = (& $dest install-service 2>&1 | Out-String)
+    if ($LASTEXITCODE -eq 0) { $service = $true; Note '已作为后台服务启动' }
+    else { $last = ($out.Trim() -split "`n")[-1]; Note "装成后台服务失败：${last}" }
+  }
+  $cfgPath = (& $dest config path 2>$null | Out-String).Trim()
+  $bound = $false
+  if ($cfgPath) { $bound = Test-Path (Join-Path (Split-Path $cfgPath) 'node.key') }
+
   Write-Host ''
-  Write-Host '  beeshare-node console                  打开本机的网页控制台（也可以在那里绑定、设置代理）'
-  Write-Host '  beeshare-node doctor                   出问题时先运行它'
-  Write-Host '  以后更新：beeshare-node update'
+  if ($service) {
+    Write-Host '√ 节点已在后台运行：登录后自动运行、崩溃自动恢复、自动更新到验证过签名的新版本。' -ForegroundColor Green
+    & $dest console -wait 20s *> $null
+    if ($LASTEXITCODE -eq 0) {
+      if ($bound) { Write-Host '  本地控制台已在浏览器里打开。' }
+      else { Write-Host '  本地控制台已在浏览器里打开：点「一键绑定」，或输入网站「节点 → 添加节点」里的绑定码。' }
+      Write-Host '  没看到的话运行：beeshare-node console'
+    } elseif (-not $bound) {
+      Write-Host "  下一步：到网站「节点 → 添加节点」生成绑定码（${base}/nodes），然后运行 beeshare-node bind <绑定码>"
+    }
+    Write-Host ''
+    Write-Host '  beeshare-node          数字菜单（设置代理、查看状态、检查更新…）'
+    Write-Host '  beeshare-node status   查看状态        beeshare-node uninstall-service   停止并移除'
+  } else {
+    Write-Host '下一步（不想记命令：直接运行 beeshare-node，按数字选择）：'
+    Write-Host "  1. 在网站「节点 → 添加节点」里生成绑定码：${base}/nodes"
+    Write-Host '  2. beeshare-node bind <绑定码>'
+    Write-Host '  3. beeshare-node install-service       （登录后自动运行、崩溃自动恢复、自动更新）'
+    Write-Host '     或 beeshare-node run               （前台运行，关掉窗口就下线）'
+    Write-Host ''
+    Write-Host '  beeshare-node console                  打开本机的网页控制台（也可以在那里绑定、设置代理）'
+    Write-Host '  beeshare-node doctor                   出问题时先运行它'
+  }
   Write-Host ''
   Write-Host '  欢迎加入蜂享。' -ForegroundColor Yellow -NoNewline; Write-Host "使用指南和收益规则见 ${base}" -ForegroundColor DarkGray
 }
