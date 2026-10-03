@@ -1,7 +1,7 @@
 #!/bin/sh
 # BeeShare 节点安装脚本（macOS / Linux）。
 #   curl -fsSL https://beeshare.cc/install.sh | sh
-#   curl -fsSL https://gitee.com/muhouxiaoou/beeshare-node/raw/main/install.sh | sh   （从 Gitee 镜像安装）
+#   curl -fsSL https://gitee.com/muhouxiaoou/beeshare-node/releases/download/latest/install.sh | sh   （从 Gitee 镜像安装）
 #
 # 做的事：检测系统和架构 → 下载对应的安装包 → 校验 SHA-256（来自平台的更新清单）→ 试运行确认版本 → 安装。
 # 默认装到 ~/.local/bin（root 用户装到 /usr/local/bin），不需要 sudo。
@@ -12,8 +12,7 @@
 #
 # 网络：连平台服务器时常常握手失败（实测十次只成两三次），所以按顺序找来源：Gitee 镜像 → GitHub 镜像 →
 # 平台服务器。每个请求都有时限，连不上就换下一个；全都不行时给出走代理的做法。
-# 注意：这个文件会原样放到 Gitee 镜像上，Gitee 的内容审核会拦下含某些地名、网络用语的文件（返回 451），
-# 写注释和提示时不要用这类词（词表在 relmirror.GiteeBlockedWords，beeshare-release 的测试会检查）。
+# 这个文件在 Gitee 上是发行版 latest 的附件（不是仓库文件：仓库里的文本要过内容审核，这个脚本被拦过）。
 # 镜像由 beeshare-release mirror 同步，安装包都按清单里的 SHA-256 校验，镜像被篡改也装不上。
 set -eu
 
@@ -42,7 +41,7 @@ net_help() {
     say "  · 网络不稳定时，重新运行一次安装命令通常就好了"
     say "  · 本机有代理时，先设置代理再安装，例如："
     say "      export HTTPS_PROXY=http://127.0.0.1:7890"
-    say "      curl -fsSL ${GITEE}/raw/main/install.sh | sh"
+    say "      curl -fsSL ${GITEE}/releases/download/latest/install.sh | sh"
   } >&2
 }
 
@@ -92,10 +91,10 @@ src_label() {
     site) say "beeshare.cc" ;;
   esac
 }
-# Gitee 没有"最新发行版"的直链，读仓库里的 manifest.json（镜像同步时最后更新）；GitHub 用 releases/latest。
+# Gitee 没有"最新发行版"的直链，读固定标签 latest 发行版里的清单（镜像同步时最后更新）；GitHub 用 releases/latest。
 manifest_url() {
   case "$1" in
-    gitee) say "${GITEE}/raw/main/manifest.json" ;;
+    gitee) say "${GITEE}/releases/download/latest/manifest.json" ;;
     github) say "${GITHUB}/releases/latest/download/manifest.json" ;;
     site) say "${BASE}/node/manifest.json" ;;
   esac
