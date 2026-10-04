@@ -1,34 +1,34 @@
 {
   "schema": 1,
-  "version": "0.1.6",
-  "published_at": "2026-10-04T00:34:16Z",
-  "expires_at": "2027-04-02T00:34:16Z",
-  "notes": "节点本地凭证出口检查与授权前风险提示",
+  "version": "0.1.7",
+  "published_at": "2026-10-04T02:10:14Z",
+  "expires_at": "2027-04-02T02:10:14Z",
+  "notes": "自动更新状态诊断：检查时间、下次检查、发布来源；服务模式开启并保存立即检查",
   "assets": {
     "darwin-amd64": {
-      "file": "beeshare-node-0.1.6-darwin-amd64",
-      "sha256": "d1f597fa0d2d5a4676c789257bffeb70810b7dd7f0a42251c160fca9c34a11a4",
-      "size": 7659120
+      "file": "beeshare-node-0.1.7-darwin-amd64",
+      "sha256": "af3ab91ecaa30a87219dddcb6876541fee49ed3c5bed9f6af02e563f53c7cbab",
+      "size": 7663296
     },
     "darwin-arm64": {
-      "file": "beeshare-node-0.1.6-darwin-arm64",
-      "sha256": "436011e3bb570b0f953447bf86ef68393fb3bb07e6422dd231ed20448151f50b",
-      "size": 7347682
+      "file": "beeshare-node-0.1.7-darwin-arm64",
+      "sha256": "d931ad59c66667c1572b8a16ad542b2f12b1dfca8cfa6eeb50da045b4ffa4e0f",
+      "size": 7347762
     },
     "linux-amd64": {
-      "file": "beeshare-node-0.1.6-linux-amd64",
-      "sha256": "eebee554158402218b48b850bcbea0816d9aa5b770a85e12398c1b8302bc97bd",
-      "size": 7479448
+      "file": "beeshare-node-0.1.7-linux-amd64",
+      "sha256": "122d5354f8783c254a76619b056149d7c3e88c6ce37b4935e6ec66499fba36b2",
+      "size": 7487640
     },
     "linux-arm64": {
-      "file": "beeshare-node-0.1.6-linux-arm64",
-      "sha256": "9e961de8cfabf76a711ba8350706f5db85fb78c70f5489e78b50254c70e4701e",
+      "file": "beeshare-node-0.1.7-linux-arm64",
+      "sha256": "d90f737cb22fef9ad3b30c5bf63f02761ac4884437988108d60af8e4d2ecb7b7",
       "size": 7209112
     },
     "windows-amd64": {
-      "file": "beeshare-node-0.1.6-windows-amd64.exe",
-      "sha256": "8a34f71b8dfb467e68d43223dac1530a61f1eeea93d87879075827a6d50aacf2",
-      "size": 7718912
+      "file": "beeshare-node-0.1.7-windows-amd64.exe",
+      "sha256": "3545e7c9383e6a5dfb1cc9479628c1504d46675bfb935f417ac80ba1fa0f5301",
+      "size": 7724544
     }
   }
 }
